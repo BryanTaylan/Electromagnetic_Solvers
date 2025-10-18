@@ -1,0 +1,12 @@
+# Core numerical libraries
+numpy>=1.26.0
+scipy>=1.13.0
+
+# Deep learning framework
+torch>=2.2.0
+
+# Visualization and plotting
+matplotlib>=3.8.0
+
+# Optional (for consistent environment)
+tqdm>=4.65.0
