@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 
-OMEGA = 8.0             # start easier; you can anneal up later
+OMEGA = 8.0             # starting omega
 HIDDEN = 128            # SIREN width # excact numbers not speciified in the paper  ##enough to represent oscillatory solutions of the Helmholtz equation. 
 NUM_HIDDEN = 4          # SIREN depth # excact numbers not speciified in the paper  ## Small enough to keep training stable and computationally efficient.
 OMEGA0 = 50.0           # first-layer frequency scale for SIREN (excite high-freqs). Directly from SIREN
