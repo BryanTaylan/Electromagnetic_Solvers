@@ -37,7 +37,7 @@ For GPU acceleration (PINN training), install CUDA-enabled PyTorch.
 
 ##  Usage
 
-### 🔹 1. Physics-Informed Neural Network (PINN)
+###  1. Physics-Informed Neural Network (PINN)
 
 Solves the **2D Helmholtz equation** with a SIREN neural network.
 
@@ -59,7 +59,7 @@ python helmholtz_pinn.py
 
 ---
 
-### 🔹 2. Finite-Difference Frequency-Domain (FDFD) Waveguide Solver
+###  2. Finite-Difference Frequency-Domain (FDFD) Waveguide Solver
 
 Computes **guided TE/TM modes** of a silicon wire waveguide and tracks dispersion over wavelength.
 
@@ -82,7 +82,7 @@ python waveguide_fdfd.py
 
 ---
 
-## 🧠 Comparison
+##  Comparison
 
 | Feature                     | `helmholtz_pinn.py` (PINN) | `waveguide_fdfd.py` (FDFD) |
 |------------------------------|-----------------------------|-----------------------------|
@@ -111,7 +111,7 @@ python waveguide_fdfd.py
 
 ---
 
-## 📜 License
+##  License
 
 MIT License © 2025
 
