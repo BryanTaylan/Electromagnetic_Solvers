@@ -17,7 +17,7 @@ electromagnetic-wave-solvers/
 │
 ├── helmholtz_pinn.py      # Physics-Informed Neural Network (SIREN-based Helmholtz solver)
 ├── waveguide_fdfd.py      # 2D vector FDFD mode solver for rectangular Si waveguides              
-├── pinn_em_results/       
+├── Results/       
 ├── README.md
 └── requirements.txt
 ```
