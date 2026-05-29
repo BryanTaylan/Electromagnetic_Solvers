@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 
+
 OMEGA = 8.0             # starting omega
 HIDDEN = 128            # SIREN width # excact numbers not speciified in the paper  ##enough to represent oscillatory solutions of the Helmholtz equation. 
 NUM_HIDDEN = 4          # SIREN depth # excact numbers not speciified in the paper  ## Small enough to keep training stable and computationally efficient.
@@ -216,7 +217,7 @@ def train( weights, biases, activations, omegas, omega = OMEGA, epochs = EPOCHS,
       
         # At each epoch, I resample collocation points:
         # interior points for the PDE residual and boundary points to enforce the boundary condition.
-        xy_i, xy_b, n_b = sample_points( n_interior=n_interior, n_boundary = n_boundary ), # interior collocation points, boundary collocation points, outward normal vectors at the boundary points
+        xy_i, xy_b, n_b = sample_points( n_interior=n_interior, n_boundary = n_boundary ) # interior collocation points, boundary collocation points, outward normal vectors at the boundary points
 
         # I run a forward pass on interior points to get the complex field Ez (split into real/imag).
         out_i = forward( xy_i, weights, biases, activations, omegas )
@@ -295,7 +296,7 @@ def train( weights, biases, activations, omegas, omega = OMEGA, epochs = EPOCHS,
 
       
         def closure():
-            opt.zero_grad()
+            lbfgs.zero_grad()
             xy_i, xy_b, n_b = sample_points( n_interior = n_interior, n_boundary = n_boundary )
             out_i = forward( xy_i, weights, biases, activations, omegas )
             Er_i = out_i[ : , 0 ]
