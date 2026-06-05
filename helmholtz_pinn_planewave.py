@@ -139,12 +139,7 @@ def Jz( coords, sigma = J_SIGMA, center = (0.0, 0.0 ) ):
 # src_sigma: Standard deviation (float, default is J_SIGMA) of the Gaussian distribution for source points. Controls how tightly interior points cluster near the source.
 # Returns: A tuple (xy_i, xy_b, normals) where: xy_i = tensor of interior points (uniform + Gaussian source points), with gradients enabled. xy_b = tensor of boundary points on the square domain [-1, 1]^2, with gradients enabled. normals = tensor of outward normal vectors corresponding to the boundary points.
 def sample_points( n_interior = N_INTERIOR, n_boundary = N_BOUNDARY, src_frac = SRC_FRACTION, src_sigma = J_SIGMA ):
-    n_src = int( n_interior * src_frac )                                  # number of interior points near the source.
-    n_uni = n_interior - n_src                                            # number of interior points uniformly spread across the square.
-    xy_uni = torch.rand( n_uni, 2, device = device ) * 2 - 1              # tensor of dimetions ( n_uni , 2) of uniformly random (x,y) points in [-1, 1]^2. torch.rand(n_uni, 2) generates uniform random points in [0,1]. I multiply by 2 to stretch that range to [0,2]. I subtract 1 to shift the range to [-1,1]. This way, I get (x,y) pairs uniformly distributed inside the domain square [-1,1] × [-1,1].
-    xy_src = torch.randn( n_src, 2, device = device ) * src_sigma
-    xy_src = xy_src.clamp( -1, 1 )
-    xy_i = torch.cat( [ xy_uni, xy_src ], dim = 0 )
+    xy_i = torch.rand( n_interior, 2, device = device ) * 2 - 1
     xy_i.requires_grad_( True )
 
     m = n_boundary // 4
@@ -163,6 +158,29 @@ def sample_points( n_interior = N_INTERIOR, n_boundary = N_BOUNDARY, src_frac = 
 
     xy_b.requires_grad_( True )
     return xy_i, xy_b, normals
+
+# Enforces the plane wave inlet condition on the left boundary (x = -1).
+# The incoming plane wave is E_z^inc = e^(ikx), so at x = -1:
+# E_r = cos(-k) = cos(k), E_i = sin(-k) = -sin(k)
+# We penalize the network for deviating from this at the left edge.
+
+def planewave_bc_loss( Er_b, Ei_b, coords_b, omega ):
+    k = omega * np.sqrt(1.0)
+    # Only apply to left boundary points where x == -1
+    left_mask = ( coords_b[ :, 0] < -0.99 )
+    if left_mask.sum() == 0:
+        return torch.tensor( 0.0, device = device )
+    x_left = coords_b[ left_mask, 0]
+    Er_left = Er_b[ left_mask ]
+    Ei_left = Ei_b[ left_mask ]
+
+    # Plane wave values at x = -1
+
+    Er_inc = torch.cos( k  *  x_left )
+    Ei_inc = torch.sin(k * x_left )
+
+    return ( ( Er_left - Er_inc ).pow(2) + (Ei_left - Ei_inc ).pow(2)).mean()
+
 
 # Computes the Sommerfeld radiation boundary condition (BC) loss for complex fields.
 # E_r_b: Real part of the electric field evaluated at the boundary points.
@@ -250,7 +268,11 @@ def train( weights, biases, activations, omegas, omega = OMEGA, epochs = EPOCHS,
        # Compute the boundary condition loss by applying the Sommerfeld radiation condition at the boundary points. 
        # This checks how well the network’s field (Er_b, Ei_b)  satisfies ∂u/∂n = i k u, using the boundary coordinates (xy_b) and outward normals (n_b).
        # The result is a single scalar loss value (bc_loss) that penalizes reflections at the boundary.
-        bc_loss = sommerfeld_bc_loss( Er_b, Ei_b, xy_b, n_b, omega, eps_boundary = 1.0 )
+        
+        #bc_loss = sommerfeld_bc_loss( Er_b, Ei_b, xy_b, n_b, omega, eps_boundary = 1.0 )
+        bc_sommerfield = sommerfeld_bc_loss( Er_b, Ei_b, xy_b, n_b, omega, eps_boundary = 1.0 )
+        bc_inlet = planewave_bc_loss( Er_b, Ei_b, xy_b, omega )
+        bc_loss = bc_sommerfield + bc_inlet
 
 
         # Total loss = PDE residual loss (interior physics) + weighted boundary condition loss
@@ -311,7 +333,9 @@ def train( weights, biases, activations, omegas, omega = OMEGA, epochs = EPOCHS,
             out_b = forward( xy_b, weights, biases, activations, omegas )
             Er_b= out_b[ : , 0 ]
             Ei_b = out_b[ : , 1 ]
-            bc = sommerfeld_bc_loss( Er_b, Ei_b, xy_b, n_b, omega, eps_boundary = 1.0 )
+            bc_sommerfeld = sommerfeld_bc_loss( Er_b, Ei_b, xy_b, n_b, omega, eps_boundary = 1.0 )
+            bc_inlet = planewave_bc_loss( Er_b, Ei_b, xy_b, omega )
+            bc = bc_sommerfeld + bc_inlet            
             L = pde + lambda_bc * bc
             L.backward()
             return L
@@ -357,9 +381,13 @@ def render_and_save( weights, biases, activations, omegas, circle, fname):
     im = ax.imshow( eps, extent = [ -1,1,-1,1 ], origin = 'lower', cmap = 'gray' )
     plt.colorbar(im, ax = ax, fraction = 0.046, pad = 0.04 )
     ax = plt.subplot( 2,2,2 )
-    ax.set_title( "Source" )
-    im = ax.imshow( J, extent = [ -1, 1, -1 ,1 ], origin = 'lower', cmap = 'magma' )
-    plt.colorbar( im, ax = ax, fraction = 0.046, pad = 0.04 )
+    ax.set_title( "Plane Wave (inlet)" )
+    xs = np.linspace( -1, 1, PLOT_N )
+    k_val = OMEGA * np.sqrt( 1.0 )
+    pw = np.cos( k_val * xs )
+    ax.plot( xs, pw )
+    ax.set_xlabel( "x" )
+    ax.set_ylabel( "cos(kx)" )
   
     ax = plt.subplot( 2,2,3 )
     ax.set_title( "Real(E_z)" )
@@ -396,7 +424,8 @@ def main():
     print( f"Device: {device}" )
     torch.manual_seed( 0 )
     np.random.seed( 0 )
-    cases = [ ( "free_space", None ), ( "dielectric_circle", ( 0.0, 0.0, 0.30, 2.0 ) ), ]
+    #cases = [ ( "free_space", None ), ( "dielectric_circle", ( 0.0, 0.0, 0.30, 2.0 ) ), ]
+    cases = [ ( "planewave_free_space", None ), ( "planewave_dielectric", ( 0.0, 0.0, 0.30, 2.0 ) ), ]
     for name, circle in cases:
         print(f" Training case: {name} ")
         weights, biases, activations, omegas = build_model( input_dim = 2, hidden_dim = HIDDEN, output_dim = 2, num_hidden = NUM_HIDDEN, omega_0 = OMEGA0 )
