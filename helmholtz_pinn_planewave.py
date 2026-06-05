@@ -14,7 +14,7 @@ EPOCHS = 20000          # Adam epochs. I chose 20k epochs because PINNs converge
                         # 20k gave a good balance: long enough to reduce the PDE and boundary losses, but not so long that training became inefficient.
 LR = 1e-3               # Adam LR. I used 1e-3 because it’s a stable default for Adam — big enough to make progress, but small enough to avoid instability
 ETA_MIN_FACTOR = 0.05   # cosine schedule final LR = LR*ETA_MIN_FACTOR
-LAMBDA_BC = 3.0         # weight for Sommerfeld BC (keep PDE influential). Chosen by try and error. Chosen because it made the boundary residual and PDE residual roughly the same order of magnitude during training.
+LAMBDA_BC = 50.0         # weight for Sommerfeld BC (keep PDE influential). Chosen by try and error. Chosen because it made the boundary residual and PDE residual roughly the same order of magnitude during training.
 N_INTERIOR = 40000      # interior collocation per epoch
 N_BOUNDARY = 6000       # boundary collocation per epoch
 SRC_FRACTION = 0.4      # fraction of interior pts drawn near source
@@ -22,7 +22,7 @@ J_SIGMA = 0.05          # Gaussian source width (smoother forcing). Use 0.05 for
 USE_LBFGS = True        # finishing pass
 PLOT_N = 201            # 201 includes (0,0)
 GRAD_CLIP = 5.0         # gradient clipping
-EARLY_STOP_THR = 1e-6   # early stopping threshold
+EARLY_STOP_THR = 1e-10   # early stopping threshold
 
 OUTDIR = Path( "pinn_em_results" )
 OUTDIR.mkdir( parents = True, exist_ok = True )
