@@ -198,7 +198,7 @@ def sommerfeld_bc_loss( E_r_b, E_i_b, coords_b, normals_b, omega = OMEGA, eps_bo
 # n_boundary: Number of boundary sample points per epoch (default is N_BOUNDARY).
 # use_lbfgs: Boolean flag (default is USE_LBFGS). If True, runs additional optimization with LBFGS after Adam.
 # Returns: None (trains the model in place by updating weights and biases).
-def train( weights, biases, activations, omegas, omega = OMEGA, epochs = EPOCHS, lr = LR, loss_threshold = EARLY_STOP_THR, lambda_bc = LAMBDA_BC, circle = None, n_interior = N_INTERIOR, n_boundary = N_BOUNDARY, use_lbfgs = USE_LBFGS):
+def train( weights, biases, activations, omegas, omega = OMEGA, epochs = EPOCHS, lr = LR, loss_threshold = EARLY_STOP_THR, lambda_bc = LAMBDA_BC, circle = None, n_interior = N_INTERIOR, n_boundary = N_BOUNDARY, use_lbfgs = USE_LBFGS, source_center = (0.0, 0.0)):
 
     # First, I make sure all parameters require gradients so autograd can update them.
     for W in weights: W.requires_grad_( True )
@@ -231,7 +231,7 @@ def train( weights, biases, activations, omegas, omega = OMEGA, epochs = EPOCHS,
         # I build the spatial permittivity (ε), optionally with a dielectric circle,
         # and I evaluate the source term Jz at the interior points.
         eps_i = epsilon_field( xy_i, circle = circle )
-        J = Jz( xy_i )
+        J = Jz( xy_i, center = source_center )
 
         # These are the Helmholtz residuals for real and imaginary parts:
         #   Real: -∇²Er - ε ω² Er = 0
@@ -304,7 +304,7 @@ def train( weights, biases, activations, omegas, omega = OMEGA, epochs = EPOCHS,
             lap_r = laplacian( Er_i, xy_i) 
             lap_i = laplacian( Ei_i, xy_i )
             eps_i = epsilon_field( xy_i, circle = circle )
-            J = Jz( xy_i )
+            J = Jz( xy_i, center = source_center )
             res_r = - lap_r - ( eps_i * ( omega**2 ) ) * Er_i
             res_i = - lap_i - ( eps_i * ( omega**2 ) ) * Ei_i  * ( omega * J ) # added j instance back
             pde = ( res_r.pow( 2 ) + res_i.pow( 2 ) ).mean()
@@ -392,19 +392,7 @@ def render_and_save( weights, biases, activations, omegas, circle, fname):
 # - Renders and saves plots of permittivity, source, and fields.
 # - Computes and prints the RMS of the PDE residual.
 # Returns: None.
-def main():
-    print( f"Device: {device}" )
-    torch.manual_seed( 0 )
-    np.random.seed( 0 )
-    cases = [ ( "free_space", None ), ( "dielectric_circle", ( 0.0, 0.0, 0.30, 2.0 ) ), ]
-    for name, circle in cases:
-        print(f" Training case: {name} ")
-        weights, biases, activations, omegas = build_model( input_dim = 2, hidden_dim = HIDDEN, output_dim = 2, num_hidden = NUM_HIDDEN, omega_0 = OMEGA0 )
-        weights, biases, activations, omegas = train( weights, biases, activations, omegas, omega = OMEGA, epochs = EPOCHS, lr = LR, loss_threshold = EARLY_STOP_THR, lambda_bc = LAMBDA_BC, circle = circle, n_interior = N_INTERIOR, n_boundary = N_BOUNDARY, use_lbfgs = USE_LBFGS )
-        render_and_save( weights, biases, activations, omegas, circle, fname=f"{name}_omega{OMEGA:g}.png" )
 
-        rms = pde_residual_rms( weights, biases, activations, omegas, omega = OMEGA, circle = circle, N = PLOT_N )
-        print( f"PDE residual RMS ({name}): {rms:.3e}" )
 
 # Computes the root mean square (RMS) of the PDE residual on a uniform grid.
 # weights: List of weight matrices of the trained network.
@@ -428,5 +416,4 @@ def pde_residual_rms( weights, biases, activations, omegas, omega = OMEGA, circl
     res_i = -lap_i - ( eps * ( omega**2 ) ) * Ei  ( omega * J ) # added back instance of J here
     return torch.sqrt( torch.mean( res_r**2 + res_i**2 ) ).item()
 
-if __name__ == "__main__":
-    main()
+
