@@ -71,6 +71,10 @@ def generate_sample(scenario_name, params, sample_id, outdir, circle=None):
 def main():
     outdir = DATASET_DIR / "free_space_source_v2"
     for i, params in enumerate(free_space_params):
+        # Skip if already done
+        if (outdir / f"sample_{i:04d}.npy").exists():
+            print(f"Skipping sample_{i:04d}.npy — already exists")
+            continue
         generate_sample("free_space_source", params, i, outdir, circle=None)
 
 
