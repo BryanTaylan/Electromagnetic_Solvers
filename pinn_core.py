@@ -306,7 +306,7 @@ def train( weights, biases, activations, omegas, omega = OMEGA, epochs = EPOCHS,
             eps_i = epsilon_field( xy_i, circle = circle )
             J = Jz( xy_i, center = source_center )
             res_r = - lap_r - ( eps_i * ( omega**2 ) ) * Er_i
-            res_i = - lap_i - ( eps_i * ( omega**2 ) ) * Ei_i  * ( omega * J ) # added j instance back
+            res_i = - lap_i - ( eps_i * ( omega**2 ) ) * Ei_i  + ( omega * J ) # added j instance back
             pde = ( res_r.pow( 2 ) + res_i.pow( 2 ) ).mean()
             out_b = forward( xy_b, weights, biases, activations, omegas )
             Er_b= out_b[ : , 0 ]
@@ -413,7 +413,7 @@ def pde_residual_rms( weights, biases, activations, omegas, omega = OMEGA, circl
     eps = epsilon_field( coords, circle = circle )
     J = Jz( coords )
     res_r = -lap_r - ( eps * ( omega**2 ) ) * Er
-    res_i = -lap_i - ( eps * ( omega**2 ) ) * Ei  ( omega * J ) # added back instance of J here
+    res_i = -lap_i - ( eps * ( omega**2 ) ) * Ei  + ( omega * J ) # added back instance of J here
     return torch.sqrt( torch.mean( res_r**2 + res_i**2 ) ).item()
 
 
