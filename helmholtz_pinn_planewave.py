@@ -430,6 +430,16 @@ def main():
         print(f" Training case: {name} ")
         weights, biases, activations, omegas = build_model( input_dim = 2, hidden_dim = HIDDEN, output_dim = 2, num_hidden = NUM_HIDDEN, omega_0 = OMEGA0 )
         weights, biases, activations, omegas = train( weights, biases, activations, omegas, omega = OMEGA, epochs = EPOCHS, lr = LR, loss_threshold = EARLY_STOP_THR, lambda_bc = LAMBDA_BC, circle = circle, n_interior = N_INTERIOR, n_boundary = N_BOUNDARY, use_lbfgs = USE_LBFGS )
+        weight_names = {
+            "planewave_free_space": "incoming_wave_weights.pt",
+            "planewave_dielectric": "incoming_wave_dielectric_sphere_weights.pt"
+        }
+        torch.save({
+            "weights": [w.detach().cpu() for w in weights],
+            "biases":  [b.detach().cpu() for b in biases],
+            "activations": activations,
+            "omegas": omegas
+        }, OUTDIR / weight_names[name])
         render_and_save( weights, biases, activations, omegas, circle, fname=f"{name}_omega{OMEGA:g}.png" )
 
         rms = pde_residual_rms( weights, biases, activations, omegas, omega = OMEGA, circle = circle, N = PLOT_N )
