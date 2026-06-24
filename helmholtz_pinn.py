@@ -231,13 +231,13 @@ def train( weights, biases, activations, omegas, omega = OMEGA, epochs = EPOCHS,
         # I build the spatial permittivity (ε), optionally with a dielectric circle,
         # and I evaluate the source term Jz at the interior points.
         eps_i = epsilon_field( xy_i, circle = circle )
-        # J = Jz( xy_i )
+        J = Jz( xy_i )
 
         # These are the Helmholtz residuals for real and imaginary parts:
         #   Real: -∇²Er - ε ω² Er = 0
         #   Imag: -∇²Ei - ε ω² Ei + ω J = 0
         res_r = - lap_r - ( eps_i * ( omega**2 ) ) * Er_i
-        res_i = - lap_i - ( eps_i * ( omega**2 ) ) * Ei_i # J removal instance here
+        res_i = - lap_i - ( eps_i * ( omega**2 ) ) * Ei_i + ( omega * J )# J removal instance here
 
         # I measure the PDE loss as the mean squared residual over all interior points.
         pde_loss = ( res_r.pow( 2 ) + res_i.pow( 2 ) ).mean()
@@ -304,9 +304,9 @@ def train( weights, biases, activations, omegas, omega = OMEGA, epochs = EPOCHS,
             lap_r = laplacian( Er_i, xy_i) 
             lap_i = laplacian( Ei_i, xy_i )
             eps_i = epsilon_field( xy_i, circle = circle )
-            ## J = Jz( xy_i )
+            J = Jz( xy_i )
             res_r = - lap_r - ( eps_i * ( omega**2 ) ) * Er_i
-            res_i = - lap_i - ( eps_i * ( omega**2 ) ) * Ei_i # removed j instance
+            res_i = - lap_i - ( eps_i * ( omega**2 ) ) * Ei_i + ( omega  * J )# added back j instance
             pde = ( res_r.pow( 2 ) + res_i.pow( 2 ) ).mean()
             out_b = forward( xy_b, weights, biases, activations, omegas )
             Er_b= out_b[ : , 0 ]
@@ -346,7 +346,7 @@ def render_and_save( weights, biases, activations, omegas, circle, fname):
         Er = out[ : , 0 ].reshape( PLOT_N,PLOT_N ).cpu().numpy()
         Ei = out[ : , 1 ].reshape( PLOT_N,PLOT_N ).cpu().numpy()
         eps = epsilon_field( coords, circle ).reshape( PLOT_N, PLOT_N ).cpu().numpy()
-         # J = Jz( coords ).reshape( PLOT_N,PLOT_N ).cpu().numpy()
+        J = Jz( coords ).reshape( PLOT_N,PLOT_N ).cpu().numpy()
 
     vmax = max( np.abs( Er ).max(), np.abs( Ei ).max() )
     vmin = -vmax
@@ -401,6 +401,16 @@ def main():
         print(f" Training case: {name} ")
         weights, biases, activations, omegas = build_model( input_dim = 2, hidden_dim = HIDDEN, output_dim = 2, num_hidden = NUM_HIDDEN, omega_0 = OMEGA0 )
         weights, biases, activations, omegas = train( weights, biases, activations, omegas, omega = OMEGA, epochs = EPOCHS, lr = LR, loss_threshold = EARLY_STOP_THR, lambda_bc = LAMBDA_BC, circle = circle, n_interior = N_INTERIOR, n_boundary = N_BOUNDARY, use_lbfgs = USE_LBFGS )
+        weight_names = {
+            "free_space": "point_source_free_space_weights.pt",
+            "dielectric_circle": "point_source_dielectric_sphere_weights.pt"
+        }
+        torch.save({
+            "weights": [w.detach().cpu() for w in weights],
+            "biases":  [b.detach().cpu() for b in biases],
+            "activations": activations,
+            "omegas": omegas
+        }, OUTDIR / weight_names[name])
         render_and_save( weights, biases, activations, omegas, circle, fname=f"{name}_omega{OMEGA:g}.png" )
 
         rms = pde_residual_rms( weights, biases, activations, omegas, omega = OMEGA, circle = circle, N = PLOT_N )
@@ -423,9 +433,9 @@ def pde_residual_rms( weights, biases, activations, omegas, omega = OMEGA, circl
     lap_r = laplacian( Er, coords )
     lap_i = laplacian( Ei, coords )
     eps = epsilon_field( coords, circle = circle )
-    # J = Jz( coords )
+    J = Jz( coords )
     res_r = -lap_r - ( eps * ( omega**2 ) ) * Er
-    res_i = -lap_i - ( eps * ( omega**2 ) ) * Ei  # removed instance of J here
+    res_i = -lap_i - ( eps * ( omega**2 ) ) * Ei + ( omega * J )  # added back instance of J here
     return torch.sqrt( torch.mean( res_r**2 + res_i**2 ) ).item()
 
 if __name__ == "__main__":
