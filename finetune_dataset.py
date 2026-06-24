@@ -3,8 +3,11 @@ import numpy as np
 from pathlib import Path
 
 from helmholtz_pinn import (
-    train, forward, make_plot_grid, device, PLOT_N, EARLY_STOP_THR, LAMBDA_BC, N_INTERIOR, N_BOUNDARY
+    train as train_gaussian, forward, make_plot_grid, device, PLOT_N, EARLY_STOP_THR, LAMBDA_BC, N_INTERIOR, N_BOUNDARY
 )
+
+from helmholtz_pinn_planewave import train as train_pw
+
 
 DATASET_DIR = Path("dataset_finetune")
 N_EVAL = 201
@@ -20,7 +23,7 @@ def load_weights( weight_path ):
     omegas_net = checkpoint["omegas"]
     return weights, biases, activations, omegas_net
 
-def finetune_and_save(scenario_name, omega, sample_id, outdir, weight_path, circle = None, epochs = FINETUNE_EPOCHS):
+def finetune_and_save(scenario_name, omega, sample_id, outdir, weight_path, circle = None, epochs = FINETUNE_EPOCHS, train_fn = train_gaussian):
     outdir.mkdir(parents=True, exist_ok= True)
     out_file = outdir / f"sample_{sample_id:04d}.npy"
 
@@ -29,10 +32,10 @@ def finetune_and_save(scenario_name, omega, sample_id, outdir, weight_path, circ
         return
 
     weights,biases,activations,omegas_net = load_weights(weight_path)
-    weights,biases, activations,omegas_net = train(
+    weights,biases, activations,omegas_net = train_fn(
         weights, biases, activations, omegas_net, omega = omega, 
         epochs = epochs, loss_threshold=EARLY_STOP_THR, lambda_bc=LAMBDA_BC, 
-        n_boundary=N_BOUNDARY, use_lbfgs=False, n_interior=N_INTERIOR
+        n_boundary=N_BOUNDARY, use_lbfgs=False, n_interior=N_INTERIOR, circle = circle
     )
 
     with torch.no_grad():
@@ -47,14 +50,32 @@ def finetune_and_save(scenario_name, omega, sample_id, outdir, weight_path, circ
 
 
 def main():
-    weight_path = OUTDIR / "point_source_free_space_weights.pt"
-    if not weight_path.exists():
-        print(f"ERROR: {weight_path} not found. Run helmholtz_pinn.py first.")
-        return
 
+    # Class 1 - free space
+    weight_path = OUTDIR / "point_source_free_space_weights.pt"
     outdir = DATASET_DIR / "free_space_source"
     for i, omega in enumerate(omegas_class1):
-        finetune_and_save("free_space_source", omega, i, outdir, weight_path)
+        finetune_and_save("free_space_source", omega, i, outdir, weight_path, train_fn=train_gaussian)
+    
+    # Class 2 - diaelectric
+    weight_path = OUTDIR / "point_source_dielectric_sphere_weights.pt"
+    outdir = DATASET_DIR / "dielectric_source"
+    for i, omega in enumerate(omegas_class1):
+        finetune_and_save("dielectric_source", omega, i, outdir, weight_path, 
+                          circle=(0.0, 0.0, 0.30, 2.0), train_fn=train_gaussian)
+    
+    # Class 3 - plane wave free space
+    weight_path = OUTDIR / "incoming_wave_weights.pt"
+    outdir = DATASET_DIR / "plane_wave_free"
+    for i, omega in enumerate(omegas_class1):
+        finetune_and_save("plane_wave_free", omega, i, outdir, weight_path, train_fn=train_pw)
+    
+    # Class 4 - plane wave diaelectric
+    weight_path = OUTDIR / "incoming_wave_dielectric_sphere_weights.pt"
+    outdir = DATASET_DIR / "plane_wave_dielectric"
+    for i, omega in enumerate(omegas_class1):
+        finetune_and_save("plane_wave_dielectric", omega, i, outdir, weight_path,
+                          circle=(0.0, 0.0, 0.30, 2.0), train_fn=train_pw)
 
 if __name__ == "__main__":
     main()
