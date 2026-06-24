@@ -10,7 +10,7 @@ from pinn_core import (
 
 DATASET_DIR = Path("dataset")
 N_EVAL = 201
-GEN_EPOCHS = 5000   # reduced epochs for dataset generation speed
+GEN_EPOCHS = 10000   # reduced epochs for dataset generation speed
 
 # ---------------------------------------------------------
 # Parameter sets for Class 1: free_space_source
@@ -69,7 +69,7 @@ def generate_sample(scenario_name, params, sample_id, outdir, circle=None):
 
 
 def main():
-    outdir = DATASET_DIR / "free_space_source_test"
+    outdir = DATASET_DIR / "free_space_source_test_10k"
     generate_sample("free_space_source", free_space_params[0], 0, outdir, circle=None)
 
 
