@@ -54,11 +54,11 @@ def main():
     # Class 1 - free space
     weight_path = OUTDIR / "point_source_free_space_weights.pt"
     outdir = DATASET_DIR / "free_space_source"
-    for i, omega in enumerate(omegas_class1):
+    for i, omega in enumerate(omegas_class1[:1]):
         finetune_and_save("free_space_source", omega, i, outdir, weight_path, train_fn=train_gaussian)
     
     # Class 2 - diaelectric
-    weight_path = OUTDIR / "point_source_dielectric_sphere_weights.pt"
+    '''weight_path = OUTDIR / "point_source_dielectric_sphere_weights.pt"
     outdir = DATASET_DIR / "dielectric_source"
     for i, omega in enumerate(omegas_class1):
         finetune_and_save("dielectric_source", omega, i, outdir, weight_path, 
@@ -75,7 +75,7 @@ def main():
     outdir = DATASET_DIR / "plane_wave_dielectric"
     for i, omega in enumerate(omegas_class1):
         finetune_and_save("plane_wave_dielectric", omega, i, outdir, weight_path,
-                          circle=(0.0, 0.0, 0.30, 2.0), train_fn=train_pw)
+                          circle=(0.0, 0.0, 0.30, 2.0), train_fn=train_pw)'''
 
 if __name__ == "__main__":
     main()
