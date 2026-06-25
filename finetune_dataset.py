@@ -11,7 +11,7 @@ from helmholtz_pinn_planewave import train as train_pw
 
 DATASET_DIR = Path("dataset_finetune")
 N_EVAL = 201
-FINETUNE_EPOCHS = 500
+FINETUNE_EPOCHS = 750
 OUTDIR = Path("pinn_em_results")
 omegas_class1 = [round(4.0 + i * 0.107, 3) for i in range(150)]
 
