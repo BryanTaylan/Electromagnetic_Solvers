@@ -25,28 +25,87 @@ def load_weights( weight_path ):
     return weights, biases, activations, omegas_net
 
 def main():
+    # Test Class 1 - free space
     weight_path = OUTDIR / "point_source_free_space_weights.pt"
-
     for epochs in epoch_counts:
-        out_file = Path("dataset_finetune") / "epoch_test" / f"test_epoch_{epochs}.npy"
+        out_file = Path("dataset_finetune") / "epoch_test" / f"free_space_epoch_{epochs}.npy"
         out_file.parent.mkdir(parents=True, exist_ok=True)
         weights, biases, activations, omegas_net = load_weights(weight_path)
-
-        weights,biases, activations,omegas_net = train_gaussian(
-        weights, biases, activations, omegas_net, omega = TEST_OMEGA, 
-        epochs = epochs, loss_threshold=EARLY_STOP_THR, lambda_bc=LAMBDA_BC, 
-        n_boundary=N_BOUNDARY, use_lbfgs=False, n_interior=N_INTERIOR, 
-    )
-    
+        weights, biases, activations, omegas_net = train_gaussian(
+            weights, biases, activations, omegas_net, omega=TEST_OMEGA,
+            epochs=epochs, loss_threshold=EARLY_STOP_THR, lambda_bc=LAMBDA_BC,
+            n_boundary=N_BOUNDARY, use_lbfgs=False, n_interior=N_INTERIOR,
+        )
         with torch.no_grad():
             coords = make_plot_grid(N_EVAL)
             out = forward(coords, weights, biases, activations, omegas_net)
             Er = out[:,0].reshape(N_EVAL,N_EVAL).cpu().numpy()
             Ei = out[:,1].reshape(N_EVAL,N_EVAL).cpu().numpy()
-
         sample = np.stack([Er, Ei], axis=0)
         np.save(out_file, sample)
-        print(f"Saved test_epoch_{epochs}.npy")
+        print(f"Saved free_space_epoch_{epochs}.npy")
+
+    # Test Class 2 - dielectric
+    weight_path = OUTDIR / "point_source_dielectric_sphere_weights.pt"
+    for epochs in epoch_counts:
+        out_file = Path("dataset_finetune") / "epoch_test" / f"dielectric_epoch_{epochs}.npy"
+        out_file.parent.mkdir(parents=True, exist_ok=True)
+        weights, biases, activations, omegas_net = load_weights(weight_path)
+        weights, biases, activations, omegas_net = train_gaussian(
+            weights, biases, activations, omegas_net, omega=TEST_OMEGA,
+            epochs=epochs, loss_threshold=EARLY_STOP_THR, lambda_bc=LAMBDA_BC,
+            circle=(0.0, 0.0, 0.30, 2.0),
+            n_boundary=N_BOUNDARY, use_lbfgs=False, n_interior=N_INTERIOR,
+        )
+        with torch.no_grad():
+            coords = make_plot_grid(N_EVAL)
+            out = forward(coords, weights, biases, activations, omegas_net)
+            Er = out[:,0].reshape(N_EVAL,N_EVAL).cpu().numpy()
+            Ei = out[:,1].reshape(N_EVAL,N_EVAL).cpu().numpy()
+        sample = np.stack([Er, Ei], axis=0)
+        np.save(out_file, sample)
+        print(f"Saved dielectric_epoch_{epochs}.npy")
+
+    # Test Class 3 - plane wave free
+    weight_path = OUTDIR / "incoming_wave_weights.pt"
+    for epochs in epoch_counts:
+        out_file = Path("dataset_finetune") / "epoch_test" / f"pw_free_epoch_{epochs}.npy"
+        out_file.parent.mkdir(parents=True, exist_ok=True)
+        weights, biases, activations, omegas_net = load_weights(weight_path)
+        weights, biases, activations, omegas_net = train_pw(
+            weights, biases, activations, omegas_net, omega=TEST_OMEGA,
+            epochs=epochs, loss_threshold=EARLY_STOP_THR, lambda_bc=LAMBDA_BC,
+            n_boundary=N_BOUNDARY, use_lbfgs=False, n_interior=N_INTERIOR,
+        )
+        with torch.no_grad():
+            coords = make_plot_grid(N_EVAL)
+            out = forward(coords, weights, biases, activations, omegas_net)
+            Er = out[:,0].reshape(N_EVAL,N_EVAL).cpu().numpy()
+            Ei = out[:,1].reshape(N_EVAL,N_EVAL).cpu().numpy()
+        sample = np.stack([Er, Ei], axis=0)
+        np.save(out_file, sample)
+        print(f"Saved pw_free_epoch_{epochs}.npy")
+
+    # Test Class 4 - plane wave dielectric
+    weight_path = OUTDIR / "incoming_wave_dielectric_sphere_weights.pt"
+    for epochs in epoch_counts:
+        out_file = Path("dataset_finetune") / "epoch_test" / f"pw_dielectric_epoch_{epochs}.npy"
+        out_file.parent.mkdir(parents=True, exist_ok=True)
+        weights, biases, activations, omegas_net = load_weights(weight_path)
+        weights, biases, activations, omegas_net = train_pw(
+            weights, biases, activations, omegas_net, omega=TEST_OMEGA,
+            epochs=epochs, loss_threshold=EARLY_STOP_THR, lambda_bc=LAMBDA_BC,
+            circle=(0.0, 0.0, 0.30, 2.0),
+            n_boundary=N_BOUNDARY, use_lbfgs=False, n_interior=N_INTERIOR,
+        )
+        with torch.no_grad():
+            coords = make_plot_grid(N_EVAL)
+            out = forward(coords, weights, biases, activations, omegas_net)
+            Er = out[:,0].reshape(N_EVAL,N_EVAL).cpu().numpy()
+            Ei = out[:,1].reshape(N_EVAL,N_EVAL).cpu().numpy()
+        sample = np.stack([Er, Ei], axis=0)
+        np.save(out_file, sample)
+        print(f"Saved pw_dielectric_epoch_{epochs}.npy")
 
 
 if __name__ == "__main__":
