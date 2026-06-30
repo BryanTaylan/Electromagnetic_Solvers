@@ -24,13 +24,20 @@ def load_weights( weight_path ):
     omegas_net = checkpoint["omegas"]
     return weights, biases, activations, omegas_net
 
-def finetune_and_save(scenario_name, omega, sample_id, outdir, weight_path, circle = None, epochs = FINETUNE_EPOCHS, train_fn = train_gaussian):
+
+def epochs_for_omega(omega, base_epochs=2000,max_epochs=4000):
+    frac = (omega - 4.0) / (20.0 - 4.0)
+    return int(base_epochs + frac * (max_epochs - base_epochs))
+
+def finetune_and_save(scenario_name, omega, sample_id, outdir, weight_path, circle = None, train_fn = train_gaussian):
     outdir.mkdir(parents=True, exist_ok= True)
     out_file = outdir / f"sample_{sample_id:04d}.npy"
 
     if out_file.exists():
         print(f"Skipping sample_{sample_id:04d}.npy — already exists")
         return
+    
+    epochs = epochs_for_omega(omega)
 
     weights,biases,activations,omegas_net = load_weights(weight_path)
     weights,biases, activations,omegas_net = train_fn(
