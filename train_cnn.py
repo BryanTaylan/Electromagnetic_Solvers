@@ -22,14 +22,16 @@ class FieldDataset(Dataset):
     def __getitem__(self, idx):
         row = self.df.iloc[idx]
 
-        sample = np.load(row["filepath"])
+        sample = np.load(row["filepath"]).astype(np.float32)
 
-        max_val = np.abs(sample).max()
-        if max_val > 0:
-            sample = sample / max_val
+        for c in range(sample.shape[0]):
+            max_val = np.abs(sample[c]).max()
+            if max_val > 0:
+                sample[c] = sample[c] / max_val
+
         x = torch.tensor(sample, dtype=torch.float32)
         y = int(row["class_label"])
-        return x,y
+        return x, y
 
 def split_by_frequency(df,train_frac=0.70, val_frac = 0.15):
     train_dfs, val_dfs, test_dfs = [], [], []
