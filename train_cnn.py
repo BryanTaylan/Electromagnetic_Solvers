@@ -66,6 +66,7 @@ class SimpleCNN(nn.Module):
             nn.Flatten(),
             nn.Linear(64 * 8 * 8, 128),
             nn.ReLU(),
+            nn.Dropout(0.3),
             nn.Linear(128, num_classes),
         )
 
@@ -80,6 +81,9 @@ def train_model(model, train_loader, val_loader):
     
     best_val_acc = 0.0
     history = {"train_loss": [], "val_loss": [], "train_acc": [], "val_acc": []}
+
+    patience = 10
+    epochs_without_improvement = 0
     
     for epoch in range(EPOCHS):
         
@@ -126,8 +130,15 @@ def train_model(model, train_loader, val_loader):
         
         if val_acc > best_val_acc:
             best_val_acc = val_acc
+            epochs_without_improvement = 0
             torch.save(model.state_dict(), "best_cnn.pt")
             print(f"  → New best model saved (val_acc={val_acc:.4f})")
+        else:
+            epochs_without_improvement += 1
+            if epochs_without_improvement >= patience:
+                print(f"Early stopping at epoch {epoch+1} — no improvement for {patience} epochs")
+                break
+
     
     return history
 
