@@ -183,7 +183,7 @@ def evaluate(model, test_loader, checkpoint_path):
             logits = model(x)
             preds = logits.argmax(dim=1)
             all_preds.extend(preds.cpu().numpy())
-            all_labels.extends(y.cpu().numpy())
+            all_labels.extend(y.cpu().numpy())
     
     inference_time = (time.time() - start_time) / len(all_preds)
 
