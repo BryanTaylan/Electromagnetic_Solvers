@@ -77,6 +77,9 @@ class SimpleCNN(nn.Module):
         x = self.classifier(x)
         return x
 
+
+
+
 def train_model(model, train_loader, val_loader):
     optimizer = torch.optim.Adam(model.parameters(), lr=LR)
     criterion = nn.CrossEntropyLoss()
@@ -181,6 +184,11 @@ def main():
     df = pd.read_csv(METADATA_CSV)
 
     train_df, val_df, test_df = split_by_frequency(df)
+
+    train_df.to_csv(DATASET_DIR / "train_split.csv", index=False)
+    val_df.to_csv(DATASET_DIR / "val_split.csv", index=False)
+    test_df.to_csv(DATASET_DIR / "test_split.csv", index=False)
+    print("Splits saved!")
 
     train_dataset = FieldDataset(train_df)
     val_dataset = FieldDataset(val_df)
