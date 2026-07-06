@@ -101,7 +101,7 @@ def train_linear_probe(model, train_loader, val_loader):
     print(f"Total training time: {total_time:.1f}s")
     return history
 
-def train_finetune(model, train_loader, val_loader):
+def train_finetune(model, train_loader, val_loader, checkpoint="best_resnet_finetune.pt"):
     optimizer = torch.optim.Adam(model.parameters(), lr=LR_FINETUNE)
     criterion = nn.CrossEntropyLoss()
     best_val_acc = 0.0 
@@ -157,7 +157,7 @@ def train_finetune(model, train_loader, val_loader):
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             epochs_without_improvement = 0
-            torch.save(model.state_dict(), "best_resnet_finetune.pt")
+            torch.save(model.state_dict(), checkpoint)
             print(f"  → New best model saved (val_acc={val_acc:.4f})")
         else:
             epochs_without_improvement += 1
@@ -248,6 +248,27 @@ def main():
 
     history_ft = train_finetune(model, train_loader, val_loader)
     acc_ft, cm_ft, per_class_ft, inf_time_ft = evaluate(model, test_loader, "best_resnet_finetune.pt")
+
+    # ── ResNet18 From Scratch ──
+    print("\n=== ResNet18 From Scratch ===")
+    model = resnet18(weights=None).to(device)
+    model.fc = nn.Linear(512, 4).to(device)
+    history_scratch = train_finetune(model, train_loader, val_loader, checkpoint="best_resnet_scratch.pt")
+    acc_scratch, cm_scratch, per_class_scratch, inf_time_scratch = evaluate(model, test_loader, "best_resnet_scratch.pt")
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+    axes[0].plot(history_scratch["train_loss"], label="Train Loss")
+    axes[0].plot(history_scratch["val_loss"], label="Val Loss")
+    axes[0].set_title("Loss — ResNet18 Scratch")
+    axes[0].legend()
+    axes[1].plot(history_scratch["train_acc"], label="Train Acc")
+    axes[1].plot(history_scratch["val_acc"], label="Val Acc")
+    axes[1].set_title("Accuracy — ResNet18 Scratch")
+    axes[1].legend()
+    plt.tight_layout()
+    plt.savefig("resnet_scratch_curves.png", dpi=150)
+    plt.close()
+    print("Saved resnet_scratch_curves.png")
 
     # ── Plot curves ──
     for history, name in [(history_probe, "probe"), (history_ft, "finetune")]:
