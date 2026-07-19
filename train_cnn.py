@@ -5,6 +5,7 @@ import pandas as pd
 from pathlib import Path
 from torch.utils.data import Dataset, DataLoader
 import matplotlib.pyplot as plt
+import time
 
 DATASET_DIR = Path("dataset")
 METADATA_CSV = DATASET_DIR / "metadata.csv"
@@ -147,13 +148,14 @@ def train_model(model, train_loader, val_loader):
     
     return history
 
-def evaluate(model, test_loader):
-    model.load_state_dict(torch.load("best_cnn.pt", map_location=device))
+def evaluate(model, test_loader, checkpoint="best_cnn.pt"):
+    model.load_state_dict(torch.load(checkpoint, map_location=device))
     model.eval()
 
     all_preds = []
     all_labels = []
 
+    start_time = time.time()
     with torch.no_grad():
         for x, y in test_loader:
             x, y = x.to(device), y.to(device)
@@ -162,20 +164,26 @@ def evaluate(model, test_loader):
             all_preds.extend(preds.cpu().numpy())
             all_labels.extend(y.cpu().numpy())
     
+    inference_time = (time.time() - start_time) / len(all_preds)
+
     all_preds = np.array(all_preds)
     all_labels = np.array(all_labels)
     accuracy = (all_preds == all_labels).mean()
-    print(f"Test Accuracy: {accuracy:.4f}")
 
     num_classes = 4
-    cm = np.zeros((num_classes, num_classes), dtype = int)
+    cm = np.zeros((num_classes, num_classes), dtype=int)
     for true, pred in zip(all_labels, all_preds):
         cm[true][pred] += 1
     
+    per_class_acc = cm.diagonal() / cm.sum(axis=1)
+
+    print(f"Test Accuracy: {accuracy:.4f}")
+    print(f"Per-class Accuracy: {per_class_acc}")
+    print(f"Inference time per sample: {inference_time*1000:.2f}ms")
     print("Confusion Matrix:")
     print(cm)
     
-    return accuracy, cm
+    return accuracy, cm, per_class_acc, inference_time
 
 def main():
     torch.manual_seed(SEED)
@@ -202,7 +210,7 @@ def main():
 
     history = train_model(model, train_loader, val_loader)
 
-    accuracy , cm = evaluate(model, test_loader)
+    accuracy, cm, per_class_acc, inference_time = evaluate(model, test_loader)
 
     # 8. plot curves
     fig, axes = plt.subplots(1, 2, figsize=(12, 4))
