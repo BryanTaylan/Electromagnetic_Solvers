@@ -53,7 +53,11 @@ CHECKPOINTS = [2000, 4000, 8000, 12000, 16000, 24000, 32000, 64000]
 STABLE_THRESHOLD = 0.01
 SEED = 0
 N_EVAL = 201
-BC_SIGN = -1  # corrected outgoing condition, dEz/dn + ikEz = 0
+BC_SIGN = +1  # matches the actual production code in helmholtz_pinn.py:
+              # dEz/dn = +ikEz under e^{-i omega t}, confirmed correct by Theo.
+              # (BC_SIGN = -1 was used in the previous run of this script by
+              # mistake -- that value produces dEz/dn = -ikEz, the OPPOSITE
+              # of the production boundary condition. This run supersedes it.)
 
 # (tag, weight_file, has_circle, is_pw, omega)
 CASES = [
